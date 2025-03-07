@@ -44,8 +44,6 @@ jobs:
           api_location: "" # Api source code path - optional
           output_location: "build" # Built app content directory - optional
           github_id_token: ${{ steps.idtoken.outputs.result }}
-        env: # Add environment variables here
-          NODE_VERSION: 23.9.0
           ###### End of Repository/Build Configurations ######
 
   close_pull_request_job:
