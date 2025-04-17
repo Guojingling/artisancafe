@@ -1,11 +1,17 @@
+import logo from "app/images/logo.png"
+import background from "app/images/artisan-salmon.jpg"
+import { MenuCard } from "~/components/menu_card/menu_card"
+import card_image from "app/images/artisan-food.jpg"
+import { Button } from "reactstrap"
+
 export function Info() {
     return (
-        <div>
-            <h1>Information Page</h1>
-            <h2>Address: </h2>
-            <h2>Opening hours:</h2>
-            <h2>Email: </h2>
-            <h2>Phone: </h2>
+        <div className="container-fluid"
+            style={{
+                backgroundImage: background
+            }}
+        >
+            yes
         </div>
     )
 }
