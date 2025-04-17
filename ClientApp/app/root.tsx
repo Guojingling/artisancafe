@@ -8,7 +8,8 @@ import {
 } from "react-router";
 
 import type { Route } from "./+types/root";
-import { NavMenu } from "./navbar/navmenu";
+import { NavMenu } from "./components/navbar/navmenu";
+import 'bootstrap/dist/css/bootstrap.css';
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
