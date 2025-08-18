@@ -1,7 +1,4 @@
 
-// import logoDark from "./logo-dark.svg";
-// import logoLight from "./logo-light.svg";
-
 import logo from "./logo.jpg";
 import cafefrontdesk from "./images/cafefrontdesk.jpg";
 import petty from "./petty.jpg";
