@@ -1,60 +1,107 @@
-import { type FormEvent, useState } from "react";
+import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
+import { promisify } from "node:util";
+import { Form, useActionData, useNavigation } from "react-router";
+import type { Route } from "./+types/account";
 
-type AccountStatus = {
+type ActionData = {
   success: boolean;
-  message: string;
+  message?: string;
+  error?: string;
 };
 
+const execFileAsync = promisify(execFile);
+
+function escapeSqlcmdValue(value: string): string {
+  return value.replace(/"/g, '""').replace(/'/g, "''");
+}
+
+function getSqlcmdArgs({
+  server,
+  database,
+  fullName,
+  email,
+  passwordHash,
+  user,
+  password,
+}: {
+  server: string;
+  database: string;
+  fullName: string;
+  email: string;
+  passwordHash: string;
+  user?: string;
+  password?: string;
+}) {
+  const query = `
+    INSERT INTO dbo.Accounts (FullName, Email, PasswordHash, CreatedAt)
+    VALUES ('$(fullName)', '$(email)', '$(passwordHash)', SYSDATETIME());
+  `.trim();
+
+  const args = ["-S", server, "-d", database, "-b", "-Q", query, "-v"];
+  args.push(`fullName="${escapeSqlcmdValue(fullName)}"`);
+  args.push(`email="${escapeSqlcmdValue(email)}"`);
+  args.push(`passwordHash="${escapeSqlcmdValue(passwordHash)}"`);
+
+  if (user && password) {
+    args.push("-U", user, "-P", password);
+  } else {
+    args.push("-E");
+  }
+
+  return args;
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  const formData = await request.formData();
+  const fullName = String(formData.get("fullName") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+
+  if (!fullName || !email || !password) {
+    return {
+      success: false,
+      error: "Please fill out all fields to create your account.",
+    } satisfies ActionData;
+  }
+
+  const hashedPassword = createHash("sha256").update(password).digest("hex");
+  const server = process.env.SQL_SERVER ?? "AladdinDev001";
+  const database = process.env.SQL_DATABASE ?? "ArtisanCafe";
+  const user = process.env.SQL_USER;
+  const passwordValue = process.env.SQL_PASSWORD;
+
+  try {
+    const args = getSqlcmdArgs({
+      server,
+      database,
+      fullName,
+      email,
+      passwordHash: hashedPassword,
+      user: user ?? undefined,
+      password: passwordValue ?? undefined,
+    });
+    await execFileAsync("sqlcmd", args);
+
+    return {
+      success: true,
+      message: "Your account has been created.",
+    } satisfies ActionData;
+  } catch (error) {
+    console.error("Account creation failed", error);
+    return {
+      success: false,
+      error: "We could not create your account. Please try again.",
+    } satisfies ActionData;
+  }
+}
+
 export default function Account() {
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [status, setStatus] = useState<AccountStatus | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const apiUrl =
-    import.meta.env.VITE_ACCOUNT_API_URL ??
-    "http://AladdinDev001:5000/api/accounts";
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsSubmitting(true);
-    setStatus(null);
-
-    try {
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fullName,
-          email,
-          password,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Account creation failed.");
-      }
-
-      setStatus({
-        success: true,
-        message: "Your account has been created.",
-      });
-      setFullName("");
-      setEmail("");
-      setPassword("");
-    } catch (error) {
-      console.error("Account creation failed", error);
-      setStatus({
-        success: false,
-        message: "We could not create your account. Please try again.",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const isSuccess = status?.success === true;
-  const isError = status?.success === false;
+  const actionData = useActionData<ActionData>();
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
+  const isSuccess = actionData?.success === true;
+  const isError = actionData?.success === false;
 
   return (
     <main className="container">
@@ -68,10 +115,7 @@ export default function Account() {
       </div>
       <div className="row">
         <div className="col-lg-6">
-          <form
-            className="border rounded p-4 shadow-sm bg-light"
-            onSubmit={handleSubmit}
-          >
+          <Form method="post" className="border rounded p-4 shadow-sm bg-light">
             <div className="mb-3">
               <label className="form-label" htmlFor="fullName">
                 Full Name
@@ -81,8 +125,6 @@ export default function Account() {
                 id="fullName"
                 name="fullName"
                 type="text"
-                value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
                 required
               />
             </div>
@@ -95,8 +137,6 @@ export default function Account() {
                 id="email"
                 name="email"
                 type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
                 required
               />
             </div>
@@ -109,8 +149,6 @@ export default function Account() {
                 id="password"
                 name="password"
                 type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
                 required
               />
             </div>
@@ -119,15 +157,15 @@ export default function Account() {
             </button>
             {isSuccess && (
               <p className="text-success mt-3 mb-0" role="status">
-                {status?.message}
+                {actionData?.message}
               </p>
             )}
             {isError && (
               <p className="text-danger mt-3 mb-0" role="alert">
-                {status?.message}
+                {actionData?.error}
               </p>
             )}
-          </form>
+          </Form>
         </div>
         <div className="col-lg-6 mt-4 mt-lg-0">
           <div className="p-4 border rounded bg-white shadow-sm">
@@ -137,8 +175,9 @@ export default function Account() {
               <strong>AladdinDev001</strong>.
             </p>
             <p className="mb-0 text-muted">
-              Configure <code>VITE_ACCOUNT_API_URL</code> to point at the API
-              that writes to AladdinDev001 if your local setup differs.
+              Set <code>SQL_SERVER</code>, <code>SQL_DATABASE</code>,{" "}
+              <code>SQL_USER</code>, and <code>SQL_PASSWORD</code> if your local
+              setup differs.
             </p>
           </div>
         </div>
