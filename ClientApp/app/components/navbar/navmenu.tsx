@@ -29,7 +29,7 @@ export function NavMenu(): JSX.Element {
                 <NavLink tag={Link} className="text-light" to="/about">About</NavLink>
               </NavItem>
               <NavItem>
-                <NavLink tag={Link} className="text-light">Account</NavLink>
+                <NavLink tag={Link} className="text-light" to="/account">Account</NavLink>
               </NavItem>
               <NavItem>
                 <NavLink tag={Link} className="text-light" to="/order">Order</NavLink>
