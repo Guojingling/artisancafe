@@ -6,5 +6,6 @@ import {
 
 export default [
     index("routes/home.tsx"),
-    route("about", "routes/about.tsx")
+    route("about", "routes/about.tsx"),
+    route("account", "routes/account.tsx")
 ] satisfies RouteConfig;

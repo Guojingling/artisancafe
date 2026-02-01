@@ -4,16 +4,10 @@ import { Link } from 'react-router-dom';
 
 export function NavMenu(): JSX.Element {
     const [collapsed, setCollapsed] = React.useState<boolean>(true);
-    const [toggleAccount, setToggleAccount] = React.useState<boolean>(false);
 
     const toggleNavbar = (): void => {
       setCollapsed(!collapsed);
     };
-
-    // ToDo: Allow pop up account
-    const showAccount = (): void => {
-      setToggleAccount(!toggleAccount);
-    }
 
     return (
       <header>
@@ -29,7 +23,7 @@ export function NavMenu(): JSX.Element {
                 <NavLink tag={Link} className="text-light" to="/about">About</NavLink>
               </NavItem>
               <NavItem>
-                <NavLink tag={Link} className="text-light">Account</NavLink>
+                <NavLink tag={Link} className="text-light" to="/account">Account</NavLink>
               </NavItem>
               <NavItem>
                 <NavLink tag={Link} className="text-light" to="/order">Order</NavLink>
